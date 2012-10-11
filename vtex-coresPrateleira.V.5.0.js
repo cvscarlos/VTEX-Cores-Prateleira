@@ -53,22 +53,18 @@ jQuery.fn.coresPrateleira=function(opts)
 		{
 			productsLi:">ul li", // Seletor jQuery para encontrar as "<li>" a partir do que foi definido em "productShelf"
 			ajaxCallback:function(){}, // callback chamado ao concluir com sucesso a requisição ajax
-			initCallback:function(){}, // callback chamado ao iniciar a função e fazer todas as funções pertencentes a mesma
+			callback:function(){}, // Callback ao término da execução de todas as funções, não lenvando em consideraçao as requisições ajax
 			messageRequestFail:"Não foi posssível obter as informações deste item.", // mensagem exibida quando existe falha na requisição
 			saveText:"Economize: R$ #value", // Texto de "economize"
 			speedFade:200, // velocidade da transição das imagens
 			thumbsQuantity:4, // Quantidade máxima de thumbs a serem exibidos na vitrine
 			currency:"R$ ", // Define o tipo de moeda que será adicionao junto ao valor do produto.
 			restoreOriginalDetails:false, // Define se quando o usuário "tirar" o mouse de cima do elemento o valor atual será mantido ou se retornará ao valor oginal do produto.
-			checkLinkEquals:true, // Checar se o link do produto é o mesmo que vem no "campo produto"
-			// função para manipular a URL do link
-			linkAdjust:function(link)
-			{
-				return (document.location.href.indexOf(".vtexcommerce")>-1)?link:link.replace(".vtexcommerce","").replace(/:\/\/(?!www)|:\/\/(?!www)/i,"://www.");
-			},
+			checkLinkEquals:false, // Checar se o link do produto é o mesmo que vem no "campo produto"
 			forceAvailable:false, // Exibir ou não a informação de produto indisponível. Caso seja definido como "true" serão exibidos os dados de preço/parcelamento mesmo p/ um SKU indisponível
 			forceImgList:false, // Força a exibição das miniaturas mesmo quando o produto esta esgotado, esta regra é ignorada quando "forceAvailable" esta como "true"
 			autoSetup:true, // O script tenta pré configurar a prateleira automaticamente
+			checkIsAvaliable:false, // Habilitar a verificação recursiva de todos os Skus cadastrados no campo produto para tentar encontrar algum disponível
 			minSkuQttShow:2, // Quantidade miníma de SKUs necessários para exibir as miniaturas
 			productImgId:30, // Id do tamanho da imagem a ser exibida na prateleira
 			thumbImgId:3, // Id do thumb a ser exibido abaixo da foto do produto
@@ -79,7 +75,7 @@ jQuery.fn.coresPrateleira=function(opts)
 			jQuery.extend(fn.options, options);
 			// chamando as funções
 			fn.createSkuElementsList();
-			fn.options.initCallback();
+			fn.options.callback();
 		},
 		createSkuElementsList:function()
 		{
@@ -97,7 +93,7 @@ jQuery.fn.coresPrateleira=function(opts)
 		{
 			var productsList=productShelf.find(fn.options.productsLi);
 			// Reporting Errors
-			if(productsList.length<1){log("Prateleira na encontrada \n ("+productsList.selector+")"); return false;}
+			if(productsList.length<1){log("Prateleira não encontrada \n ("+productsList.selector+")"); return false;}
 
 			productShelf.addClass("vtex-cpIsActivated");
 			productsList.each(function(ndx1){
@@ -125,17 +121,25 @@ jQuery.fn.coresPrateleira=function(opts)
 				$this.find(".vtex-cpProductImage img").addClass("vtex-cpOriginalImage");
 				skuArrayLength=skuArray.length;
 
-				linkEquals=fn.options.linkAdjust(skuArray[0][0]).trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"")==($this.find(".vtex-cpProductLink:first").attr("href")||"").trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"");
-				
 				if(fn.options.forceAvailable || fn.options.forceImgList)
 					skuList.addClass("vtex-cpShow").removeClass("vtex-cpHide");
 
-                if(skuArrayLength>(fn.options.minSkuQttShow-1) && (fn.options.checkLinkEquals?!linkEquals:true))
+                if(skuArrayLength>=fn.options.minSkuQttShow)
 					for(var i=0; i<skuArrayLength; i++)
 					{
 						var skuId,link;
-						skuId=skuArray[i][1],
-						link=skuArray[i][0];
+						skuId=skuArray[i][1];
+						link=skuArray[i][0].trim();
+						
+						if(fn.options.checkLinkEquals)
+						{
+							linkEquals=link.replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"")==($this.find(".vtex-cpProductLink:first").attr("href")||"").trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"");
+							if(linkEquals)
+							{
+								debug("O sku “"+skuId+"” foi ignorado pois tem o mesmo link que o produto existente na vitrine.\n URI: "+link.trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,""),"Aviso");
+								continue;
+							}
+						}
 						
 						if(i>=fn.options.thumbsQuantity)
 						{
@@ -218,7 +222,7 @@ jQuery.fn.coresPrateleira=function(opts)
 		},
 		checkIsAvaliable:function(liElem, skuId, elem, data, link, objsKey)
 		{
-			if(data[0].Availability)
+			if(data[0].Availability || !fn.options.checkIsAvaliable)
 				fn.mouseActions2(liElem, skuId, elem, data, link);
 			else
 			{
@@ -342,7 +346,7 @@ jQuery.fn.coresPrateleira=function(opts)
 			var img=jQuery('<img src="'+(images[0]||originalImage.attr("src"))+'" alt="" '+(("undefined"!==typeof imgWidth)?'width="'+imgWidth+'"':"")+' '+(("undefined"!==typeof imgHeight)?'height="'+imgHeight+'"':"")+' class="vtex-cpSkuImage" style="display:none;" />');
 			
 			if(link!="")
-				liElem.find(".vtex-cpProductLink").attr("href",fn.options.linkAdjust(link));
+				liElem.find(".vtex-cpProductLink").attr("href",link.replace(/http\:\/\/[a-z-\.]+(?=\/)/i,""));
 			
 			imgOverlay.show();
 			if(imageExist)
