@@ -22,4 +22,5 @@
 /* Sizes */
 .prateleira li .vtex-cpImgsThumb,.prateleira li .vtex-cpInner{width:30px;height:30px;}
 .vtex-cpSkuIds,.vtex-cpViewMore{height:32px;width:32px;}
-.vtex-cpProductImage{height:190px;width:190px;}
+.vtex-cpProductImage{width:190px;height:190px;}
+.vtex-cpProductImage img{width:190px;height:190px;}

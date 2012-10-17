@@ -1,7 +1,9 @@
+#set($id = $product.Id)
 #set($uri = $product.Uri)
 <!-- vtexcp Padrão -->
 <div class="vtex-cpProductField">$product.ProductField(20)</div>
 <input type="hidden" class="vtex-cpUri" value="$uri" />
+<input type="hidden" class="vtex-cpProdId" value="$id" />
 <!-- vtexcp Padrão -->
 
 <div class="first column">$product.Compare</div>
