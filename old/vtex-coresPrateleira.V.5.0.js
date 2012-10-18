@@ -1,15 +1,13 @@
 /**
 * Cores Na Prateleira
 * @author Carlos Vinicius
-* @version 6.0 [em desenvolvimento]
-* @date 2011-10-XX
-*
-* A opção de buscar as informação em uma página de produto alternativa ainda esta em BETA
+* @version 5.0
+* @date 2011-10-10
 */
 if("function"!==typeof(String.prototype.trim))String.prototype.trim=function(){ return this.replace(/^\s+|\s+$/g,""); };
 jQuery.fn.coresPrateleira=function(opts)
 {
-	var $e,fn,log,debug,extTitle,debugOn,getParent,prodLinkRegex;
+	var $e,fn,log,debug,extTitle,debugOn,getParent;
 	
 	$e=jQuery("");
 	
@@ -39,8 +37,6 @@ jQuery.fn.coresPrateleira=function(opts)
 			return getParent(p,searchElemStr);
 	};
 	
-	prodLinkRegex=/http\:\/\/[a-z\-\.]+(?=\/)/i;
-	
 	fn=
 	{
 		loadSkuJqxhr:null,
@@ -51,32 +47,28 @@ jQuery.fn.coresPrateleira=function(opts)
 		onHover:false,
 		skuList:[],
 		skuQueue:[],
-		productCache:{},
 		productShelf:null,
 		skuGroup:{},
 		options:
 		{
 			productsLi:">ul li", // Seletor jQuery para encontrar as "<li>" a partir do que foi definido em "productShelf"
+			ajaxCallback:function(){}, // callback chamado ao concluir com sucesso a requisição ajax
+			callback:function(){}, // Callback ao término da execução de todas as funções, não lenvando em consideraçao as requisições ajax
 			messageRequestFail:"Não foi posssível obter as informações deste item.", // mensagem exibida quando existe falha na requisição
 			saveText:"Economize: R$ #value", // Texto de "economize"
+			speedFade:200, // velocidade da transição das imagens
+			thumbsQuantity:4, // Quantidade máxima de thumbs a serem exibidos na vitrine
 			currency:"R$ ", // Define o tipo de moeda que será adicionao junto ao valor do produto.
-			productPageUrl:"/cores-prateleira", // Define o tipo de moeda que será adicionao junto ao valor do produto.
 			restoreOriginalDetails:false, // Define se quando o usuário "tirar" o mouse de cima do elemento o valor atual será mantido ou se retornará ao valor oginal do produto.
 			checkLinkEquals:false, // Checar se o link do produto é o mesmo que vem no "campo produto"
 			forceAvailable:false, // Exibir ou não a informação de produto indisponível. Caso seja definido como "true" serão exibidos os dados de preço/parcelamento mesmo p/ um SKU indisponível
 			forceImgList:false, // Força a exibição das miniaturas mesmo quando o produto esta esgotado, esta regra é ignorada quando "forceAvailable" esta como "true"
 			autoSetup:true, // O script tenta pré configurar a prateleira automaticamente
 			checkIsAvaliable:false, // Habilitar a verificação recursiva de todos os Skus cadastrados no campo produto para tentar encontrar algum disponível
-			useProductField:false, // Habilita a busca de SKU no campo produto. Caso "false" ele irá buscar a informação na página de cores
-			checkDuplicateUri:true, // Verifica se já existe um thumb com a mesma URI deste SKU
-			speedFade:200, // velocidade da transição das imagens
-			thumbsQuantity:4, // Quantidade máxima de thumbs a serem exibidos na vitrine
 			minSkuQttShow:2, // Quantidade miníma de SKUs necessários para exibir as miniaturas
 			productImgId:30, // Id do tamanho da imagem a ser exibida na prateleira
 			thumbImgId:3, // Id do thumb a ser exibido abaixo da foto do produto
-			action:2, // Parametro que define qual ação tomar para controlar os eventos do mouse. // Descontinuada
-			ajaxCallback:function(){}, // callback chamado ao concluir com sucesso a requisição ajax
-			callback:function(){} // Callback ao término da execução de todas as funções, não lenvando em consideraçao as requisições ajax
+			action:2 // Parametro que define qual ação tomar para controlar os eventos do mouse. // Descontinuada
 		},
 		init:function(options)
 		{
@@ -105,7 +97,7 @@ jQuery.fn.coresPrateleira=function(opts)
 
 			productShelf.addClass("vtex-cpIsActivated");
 			productsList.each(function(ndx1){
-				var $this,skuList,productField,skuArrayAll,skuArray,objsKey,linkEquals,prodId,build,prodUrl,lg,thumbsWrapper;
+				var $this,skuList,productField,skuArrayAll,skuArray,objsKey,linkEquals;
 				
 				$this=jQuery(this);
 				
@@ -114,226 +106,60 @@ jQuery.fn.coresPrateleira=function(opts)
 				
 				skuList=$this.find(".vtex-cpSkuList");
 				productField=$this.find(".vtex-cpProductField");
-				objsKey=index.toString()+"_"+ndx1.toString();
+				skuArrayAll=productField.find("li").text().trim().split("|");
 				
-				build=function(_skuArrayAll,_prodId)
+				if(debugOn)
 				{
-					var l=0,dtCount,span,linkUri;
-					
-					if(typeof _prodId != "undefined")
-						$this.data("vtex-cp_prodId",_prodId);
-					
-					// Agrupando Skus duplicados
-					skuArray=fn.groupSku(_skuArrayAll,objsKey);                
-					
-					$this.find(".vtex-cpProductImage img").addClass("vtex-cpOriginalImage");
-					skuArrayLength=skuArray.length;
+					if(productField.find("li").text().trim()=="")
+						debug("O campo produto não esta retornando nenhum valor.\n Produto: "+($this.find(".vtex-cpProductLink[title]:first").attr("title")||"[Título não encontrado]"),"Aviso");
+				}
+				
+				// Agrupando Skus duplicados
+				objsKey=index.toString()+"_"+ndx1.toString();
+				skuArray=fn.groupSku(skuArrayAll,objsKey);                
+				
+				$this.find(".vtex-cpProductImage img").addClass("vtex-cpOriginalImage");
+				skuArrayLength=skuArray.length;
 
-					if(fn.options.forceAvailable || fn.options.forceImgList)
-						skuList.addClass("vtex-cpShow").removeClass("vtex-cpHide");
+				if(fn.options.forceAvailable || fn.options.forceImgList)
+					skuList.addClass("vtex-cpShow").removeClass("vtex-cpHide");
 
-					if(skuArrayLength>=fn.options.minSkuQttShow)
-						for(var i=0; i<skuArrayLength; i++)
+                if(skuArrayLength>=fn.options.minSkuQttShow)
+					for(var i=0; i<skuArrayLength; i++)
+					{
+						var skuId,link;
+						skuId=skuArray[i][1];
+						link=skuArray[i][0].trim();
+						
+						if(fn.options.checkLinkEquals)
 						{
-							var skuId,link;
-							skuId=skuArray[i][1];
-							link=skuArray[i][0].trim();
-							linkUri=link.replace(prodLinkRegex,"");
-							
-							if(fn.options.checkLinkEquals)
+							linkEquals=link.replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"")==($this.find(".vtex-cpProductLink:first").attr("href")||"").trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,"");
+							if(linkEquals)
 							{
-								linkEquals=linkUri==($this.find(".vtex-cpProductLink:first").attr("href")||"").trim().replace(prodLinkRegex,"");
-								if(linkEquals)
-								{
-									debug("O sku “"+skuId+"” foi ignorado pois tem o mesmo link que o produto existente na vitrine.\n URI: "+linkUri,"Aviso");
-									continue;
-								}
-							}
-							
-							// Checando URIs duplicadas
-							if(fn.options.checkDuplicateUri && $this.find(".vtex-cpSkuIds[ref='"+linkUri+"']").length>0)
-							{
-								debug("O sku “"+skuId+"” foi ignorado pois já existe uma thumb na vitrine com o mesmo link.\n URI: "+linkUri,"Aviso");
+								debug("O sku “"+skuId+"” foi ignorado pois tem o mesmo link que o produto existente na vitrine.\n URI: "+link.trim().replace(/http\:\/\/[a-z-\.]+(?=\/)/i,""),"Aviso");
 								continue;
 							}
-							
-							dtCount=$this.data("vtex-cp_skusCount");
-							if(typeof dtCount == "undefined")
-								$this.data("vtex-cp_skusCount",dtCount=0);
-							else
-								$this.data("vtex-cp_skusCount",dtCount+1);
-							
-							if(dtCount>=fn.options.thumbsQuantity)
-							{
-								$this.find(".vtex-cpViewMore").addClass("vtex-cpShow").removeClass("vtex-cpHide");
-								break;
-							}
-							else if(skuId!=="")
-								if(!(skuArrayLength>fn.options.thumbsQuantity && dtCount>=(fn.options.thumbsQuantity-1)))
-								{
-									span=jQuery("<span class='vtex-cpSkuIds vtex-cpIndex_"+dtCount+" vtex-cpSkuId_"+skuId+" vtex-cpHide'><span class='vtex-cpInner'></span><span class='vtex-cpInner2'></span></span>");
-									span.attr("ref",linkUri);
-									skuList.append(
-										fn.setThumbs($this,skuId,span,link,objsKey)
-									);
-									// l++;
-								}
 						}
 						
-					// Checando a quantidade de thumbs geradas
-					thumbsWrapper=$this.find(".vtex-cpSkuIds");
-					if(thumbsWrapper.length>=fn.options.minSkuQttShow)
-						thumbsWrapper.removeClass("vtex-cpHide");
-					thumbsWrapper.first().addClass("vtex-cpFirst");
-				};
-				
-				// Obtendo os dados de SKU
-				if(fn.options.useProductField)
-				{
-					skuArrayAll=productField.find("li").text().trim().split("|");
-					
-					if(debugOn)
-					{
-						if(productField.find("li").text().trim()==="")
-							debug("O campo produto não esta retornando nenhum valor.\n Produto: "+($this.find(".vtex-cpProductLink[title]:first").attr("title")||"[Título não encontrado]"),"Aviso");
-					}
-					
-					build(skuArrayAll);
-				}
-				else
-				{
-					prodId=$this.find(".vtex-cpProdId").val();
-					prodUrl=$this.find(".vtex-cpUri").val();
-					
-					if(typeof prodId === "undefined") log("Não foi possível obter o ID do produto no campo “vtex-cpProdId”.");
-					if(typeof prodUrl === "undefined") log("Não foi possível obter a URL do produto no campo “vtex-cpUri”.");
-					
-					fn.getProductInfo(
-						function(skuArrayAll,debugCallType)
+						if(i>=fn.options.thumbsQuantity)
 						{
-							build(skuArrayAll,prodId);
-						},
-						prodId,
-						prodUrl
-					);
-				}
-			});
-		},
-		getProductInfo:function(callback,prodId,prodUrl,stop,skuInfo,$firstData,relatedWrapper)
-		{
-			var $data,located,skuSpecifications,skus=[],i,lg,skusMerged=[],exit=true;
-			
-			stop=typeof stop == "undefined"?false:stop;
-			
-			// if(typeof fn.productCache[prodId] !== "undefined" && false)
-			// {
-				// Recursivo
-				// return;
-			// }
-			
-			jQuery.ajax({
-				"url":fn.options.productPageUrl+"?idproduto="+prodId,
-				"success":function(data, textStatus, jqXHR)
-				{
-					if(data.indexOf("Ocorreu um erro")>-1)
-					{
-						log("Erro ao tentar obter os dados na página de produto específica do plugin. Uri utilizada:");
-						return false;
-					}
-					
-					$data=jQuery(data);
-					located=false;
-					skuSpecifications=null;
-
-					$data.filter("script:not([src])").each(function(){
-						var text,parser;
-						text=this.innerHTML;
-						if(text.indexOf("myJSONSkuSpecification")>-1)
-						{
-							text=text.replace(":,",':"",').replace(":}",':""}').replace(":]",':""]');
-							
-							// Com validação Js Hint
-							// text=text.split(/\=/).pop().trim();
-							// skuSpecifications=$.parseJSON(text.replace(";",""));
-							
-							// sem validação Js Hint, mas com menores chances de erro
-							eval(text);
-							skuSpecifications=myJSONSkuSpecification;
-							
-							located=true;
-							return false;
+							$this.find(".vtex-cpViewMore").addClass("vtex-cpShow").removeClass("vtex-cpHide");
+							break;
 						}
-					});
-					
-					if(!located)
-						return log("Não foi possível localizar as especificações do SKU. Id produto: "+prodId);
-						
-					
-					// Pegando todos os skus desse produto
-					lg=skuSpecifications.skus.length;
-					for(i=0;i<lg;i++)
-						for(var k in skuSpecifications.skus[i])
-							skus.push(skuSpecifications.skus[i][k].split(",").shift()+";"+prodUrl);
-
-					fn.productCache[prodId]=skus;
-					
-					// Mesclando os SKUs anteriores
-					if(typeof skuInfo !="undefined")
-						skusMerged=jQuery.merge(skuInfo,skus);
-					
-					if(typeof relatedWrapper !="undefined")
-						relatedWrapper.addClass("checked");
-					
-					// Recursivo
-					if(!stop)
-						$data.find(".vtex-cpRelated").each(function(){
-							var result,relatedWrapper;
-							result=fn.getRelatedProductInfo($(this));
-							relatedWrapper=result.pop();
-							if(result.length)
-							{
-								exit=false;
-								fn.getProductInfo(callback,result[0],result[1],true,skusMerged,$data,relatedWrapper);
-							}
-						});
-					
-					if(stop && $firstData.find(".vtex-cpRelated.checked").length>=$firstData.find(".vtex-cpRelated").length)
-					{
-						debugCallType="Recursive [stop]";
-						callback(skusMerged,debugCallType);
+						else if(skuId!="")
+							if(!(skuArrayLength>fn.options.thumbsQuantity && i>=(fn.options.thumbsQuantity-1)))
+								skuList.append(
+									fn.setThumbs($this,skuId,jQuery("<span class='vtex-cpSkuIds vtex-cpIndex_"+i+" vtex-cpSkuId_"+skuId+(i==0?" vtex-cpFirst":"")+"'><span class='vtex-cpInner'></span><span class='vtex-cpInner2'></span></span>"),link,objsKey)
+								);
 					}
-					else if(exit && typeof $firstData == "undefined")
-					{
-						debugCallType="Direct [exit]";
-						callback(skus,debugCallType);
-					}
-					
-					// return skus;
-				},
-				"error":function()
-				{
-					log("Erro ao tentar obter os dados na página de produto específica do plugin. Uri utilizada:");
-				}
 			});
-		},
-		getRelatedProductInfo:function(elem)
-		{
-			var prodId,prodUrl,out=[elem];
-			
-			prodId=elem.find(".vtex-cpProdId").val();
-			prodUrl=elem.find(".vtex-cpUri").val();
-					
-			if(typeof prodId !== "undefined" && typeof prodUrl !== "undefined")
-				out=[prodId,prodUrl,elem];
-			
-			return out;
 		},
 		groupSku:function(skuArrayAll,key)
 		{
 			var skuObj={},skuObjOrder={},out=[],tmp,first,last,lg;
 			lg=skuArrayAll.length;
 			
-			if(lg<2 && skuArrayAll[0]==="")
+			if(lg<2 && skuArrayAll[0]=="")
 				return out;
 			
 			for(var i=0; i<lg; i++)
@@ -351,17 +177,16 @@ jQuery.fn.coresPrateleira=function(opts)
 				}
 			}
 			
-			for(var ndx in skuObj)
+			for(ndx in skuObj)
 			{
-				lg=skuObj[ndx].length,
+				var lg=skuObj[ndx].length,
 					tmp2=[];
 
 				if(lg>3)
 				{
-					var part,remainder,j;
-					part=parseInt(lg/3,10);
-					remainder=lg%3;
-					j=part*2;
+					var part=parseInt(lg/3),
+						remainder=lg%3,
+						j=part*2;
 
 					for(i=0; i<part; i++)
 					{
@@ -498,7 +323,7 @@ jQuery.fn.coresPrateleira=function(opts)
 				else
 				{
 					pInfo.find(".vtex-cpInstallment").addClass("vtex-cpHide").removeClass("vtex-cpShow");
-					pInfo.find(".vtex-cpFullRegularPrice").addClass("vtex-cpShow").removeClass("vtex-cpHide");
+					pInfo.find(".vtex-cpFullRegularPrice").addClass("vtex-cpShow").removeClass("vtex-cpHide")
 				}
 				
 			}
@@ -520,8 +345,8 @@ jQuery.fn.coresPrateleira=function(opts)
 			var imageExist=(skuImg.length>0)?true:false;
 			var img=jQuery('<img src="'+(images[0]||originalImage.attr("src"))+'" alt="" '+(("undefined"!==typeof imgWidth)?'width="'+imgWidth+'"':"")+' '+(("undefined"!==typeof imgHeight)?'height="'+imgHeight+'"':"")+' class="vtex-cpSkuImage" style="display:none;" />');
 			
-			if(link!=="")
-				liElem.find(".vtex-cpProductLink").attr("href",link.replace(prodLinkRegex,""));
+			if(link!="")
+				liElem.find(".vtex-cpProductLink").attr("href",link.replace(/http\:\/\/[a-z-\.]+(?=\/)/i,""));
 			
 			imgOverlay.show();
 			if(imageExist)
@@ -552,7 +377,7 @@ jQuery.fn.coresPrateleira=function(opts)
 		},
 		setOriginalElements:function(liElem)
 		{
-			if(fn.productOriginalInfo!==null && liElem.hasClass("vtex-cpInfoFromSKU"))
+			if(fn.productOriginalInfo!=null && liElem.hasClass("vtex-cpInfoFromSKU"))
 			{
 				liElem.removeClass("vtex-cpInfoFromSKU").find(".vtex-cpProductInfoWrap").html(fn.productOriginalInfo);
 				fn.setOriginalImg(liElem);
@@ -617,7 +442,7 @@ jQuery.fn.coresPrateleira=function(opts)
 							span.hide();
 							return false;
 						}
-						else if(jqXHR.status!==0)
+						else if(jqXHR.status!=0)
 						{
 							fn.skuQueue[skuIdString].push({
 								"liElem":liElem,
@@ -665,7 +490,7 @@ jQuery.fn.coresPrateleira=function(opts)
 			{
 				_char = values[0].substr(j-1,1);
 				i++;
-				if (i%3===0 && numLength>i)
+				if (i%3==0 && numLength>i)
 					_char = thousandsSeparator+_char;
 				thousandsFormatted = _char+thousandsFormatted;
 			}
@@ -682,8 +507,8 @@ jQuery.fn.coresPrateleira=function(opts)
 				return out;
 			}
 			
-			for(var array in obj.Images)
-				for(var img in obj.Images[array])
+			for(array in obj.Images)
+				for(img in obj.Images[array])
 					if(obj.Images[array][img].ArchiveTypeId==typeId)
 					{
 						out.push(obj.Images[array][img].Path);
@@ -736,9 +561,3 @@ jQuery.fn.coresPrateleira=function(opts)
 	fn.init(opts);
 	return fn.productShelf;
 };
-
-$(function(){
-	var opts={/* useProductField:true,thumbsQuantity:2,minSkuQttShow:1 */};
-	$(".prateleira .prateleira").coresPrateleira(opts);
-	$(document).ajaxStop(function(){ $(".prateleira .prateleira").coresPrateleira(opts); });
-});
