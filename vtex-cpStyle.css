@@ -13,7 +13,7 @@
 .vtex-cpProductImage{position:relative;display:block;}
 .vtex-cpOriginalImage,.vtex-cpSkuImage{position:absolute;top:0;left:0;}
 /* Thumbs */
-.vtex-cpViewMore{float:left;left:6px;position:relative;background:url("/arquivos/plus-bold-white.png") center center #A60D01;}
+.vtex-cpViewMore{float:left;left:6px;position:relative;background:url("/arquivos/plus-white.png") center center #A60D01;}
 .vtex-cpViewMore.vtex-cpShow{display:block;}
 .vtex-cpViewMore a{display:block;width:100%;height:100%;text-indent:-9999em;}
 
