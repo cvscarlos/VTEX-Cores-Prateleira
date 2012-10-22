@@ -2,7 +2,7 @@
 * Cores Na Prateleira
 * @author Carlos Vinicius
 * @version 6.0 [em desenvolvimento]
-* @date 2011-10-XX
+* @date 2011-10-22
 *
 * A opção de buscar as informação em uma página de produto alternativa ainda esta em BETA
 *
@@ -80,7 +80,7 @@ jQuery.fn.coresPrateleira=function(opts)
 			action:2, // Parametro que define qual ação tomar para controlar os eventos do mouse. // Descontinuada
 			ajaxCallback:function(){}, // callback chamado ao concluir com sucesso a requisição ajax
 			callback:function(){}, // Callback ao término da execução de todas as funções, não lenvando em consideraçao as requisições ajax
-			thumbRendered:function($li,$thumb,productHtml,skuProduct){} // Callback após montagem das miniaturas do produto (neste momento a imagem ainda não está no DOM). Recebe como parâmetro dois objetos jQuery um contendo a li da prateleira e o outro o thumb, um objeto com o HTML de todos os produtos que foram obtidos via Ajax e um objeto contendo todos os SKUs como chave e o produto ao qual ele pertence como valor
+			thumbRendered:function($li,$thumb,productHtml,skuProduct,skuId){} // Callback após montagem das miniaturas do produto (neste momento a imagem ainda não está no DOM). Recebe como parâmetro dois objetos jQuery um contendo a li da prateleira e o outro o thumb, um objeto com o HTML de todos os produtos que foram obtidos via Ajax, um objeto contendo todos os SKUs como chave e o produto ao qual ele pertence como valor e o ID do SKU
 		},
 		init:function(options)
 		{
@@ -287,7 +287,7 @@ jQuery.fn.coresPrateleira=function(opts)
 						{
 							skuId=skuSpecifications.skus[i][k].split(",").shift();
 							skus.push(skuId+";"+prodUrl);
-							fn.skuProduct[prodId]=skuId;
+							fn.skuProduct[skuId]=prodId;
 						}
 							
 					fn.productSkus[prodId]=skus;
@@ -409,7 +409,7 @@ jQuery.fn.coresPrateleira=function(opts)
 			elem.addClass("vtex-cpLoadingData");
 			fn.loadSku(liElem, skuId, overlay, fn.options.action, elem, link, objsKey);
 			
-			fn.options.thumbRendered(liElem,elem,fn.productHtml,fn.skuProduct);
+			fn.options.thumbRendered(liElem,elem,fn.productHtml,fn.skuProduct,skuId);
 			
 			return elem;
 		},
@@ -754,15 +754,3 @@ jQuery.fn.coresPrateleira=function(opts)
 	fn.init(opts);
 	return fn.productShelf;
 };
-
-$(function(){
-	var opts={
-		/* useProductField:true,thumbsQuantity:2,minSkuQttShow:1 */
-		thumbRendered:function($li,$thumb,productHtml,skuProduct)
-		{
-			console.log($thumb.find(".vtex-cpInner"));
-		}
-	};
-	$(".prateleira .prateleira").coresPrateleira(opts);
-	$(document).ajaxStop(function(){ $(".prateleira .prateleira").coresPrateleira(opts); });
-});
