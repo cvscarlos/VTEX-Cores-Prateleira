@@ -1,5 +1,5 @@
 #VTEX - Cores na Prateleira#
-*Componente para a plataforma Vtex que possibilita exibir as variações de SKU na prateleira, mais especificamente para produtos com diversas cores mas não se limitando apenas a esta aplicação.*
+*Componente para a plataforma Vtex que possibilita exibir as variaÃ§Ãµes de SKU na prateleira, mais especificamente para produtos com diversas cores mas nÃ£o se limitando apenas a esta aplicaÃ§Ã£o.*
 
 ----------
-<p>Logo mais coloco outras informações e detalhes a respeito desta extensão</p>
+No momento toda a documentaÃ§Ã£o esta disponÃ­vel no diretÃ³rio `example`
