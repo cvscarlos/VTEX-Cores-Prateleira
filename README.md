@@ -10,7 +10,7 @@
 > O correto funcionamento deste script não é de responsabilidade de seu desenvolvedor, mantenedor ou constribuidores.  
 > Caso queira contribuir com o desenvolvimento fique a vontade para fazer um `Fork` e posteriormente um `pull request`.
 
-**Lincença**: [MIT](http://pt.wikipedia.org/wiki/Licen%C3%A7a_MIT)
+**O uso desta extensão esta sob as regras da lincença: [MIT](http://pt.wikipedia.org/wiki/Licen%C3%A7a_MIT)**
 
 ----------
 
